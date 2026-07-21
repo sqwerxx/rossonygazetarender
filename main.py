@@ -289,12 +289,20 @@ async def receive_suggestion_content(message: Message, state: FSMContext):
     finally:
         await state.clear()
 
-async def main():
-    logging.basicConfig(level=logging.INFO)
-    print("🚀 Автоматический бот запущен с переменными из .env!")
-    
-    await bot.delete_webhook(drop_pending_updates=True)
-    await dp.start_polling(bot)
+from fastapi import FastAPI
+from aiogram.webhook.fastapi import SimpleRequestHandler, setup_application
 
-if __name__ == "__main__":
-    asyncio.run(main())
+# Инициализируем FastAPI, чтобы Uvicorn нашел переменную "app"
+app = FastAPI()
+
+# Настраиваем обработчик вебхуков для aiogram
+webhook_request_handler = SimpleRequestHandler(
+    dispatcher=dp,
+    bot=bot,
+)
+webhook_request_handler.register(app, path="/")
+setup_application(app, dp, bot=bot)
+
+@app.get("/")
+async def index():
+    return {"status": "Bot is running on Render!"}
