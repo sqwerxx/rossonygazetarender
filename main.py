@@ -289,19 +289,19 @@ async def receive_suggestion_content(message: Message, state: FSMContext):
     finally:
         await state.clear()
 
-from fastapi import FastAPI
-from aiogram.webhook.fastapi import SimpleRequestHandler, setup_application
+from fastapi import FastAPI, Request
+from aiogram.types import Update
 
 # Инициализируем FastAPI, чтобы Uvicorn нашел переменную "app"
 app = FastAPI()
 
-# Настраиваем обработчик вебхуков для aiogram
-webhook_request_handler = SimpleRequestHandler(
-    dispatcher=dp,
-    bot=bot,
-)
-webhook_request_handler.register(app, path="/")
-setup_application(app, dp, bot=bot)
+@app.post("/")
+async def webhook(request: Request):
+    """Принимаем вебхук от Telegram и передаем в диспетчер aiogram"""
+    json_data = await request.json()
+    update = Update.model_validate(json_data, context={"bot": bot})
+    await dp.feed_update(bot, update)
+    return {"ok": True}
 
 @app.get("/")
 async def index():
